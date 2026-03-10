@@ -3,6 +3,7 @@ import { getCardStatus } from "../utils/sm2";
 import { btnStyle } from "../styles";
 import { getMastery, getMasteryColor, getRetention } from "../utils/forgetting";
 import SpeakButton from "./SpeakButton";
+import MarkdownText from "./MarkdownText";
 
 export default function BrowseMode({
   setMode,
@@ -151,7 +152,7 @@ export default function BrowseMode({
             <strong style={{ color: "#64ffda" }}>Core:</strong>
             <SpeakButton text={topic.core} />
           </div>
-          {topic.core}
+          <MarkdownText text={topic.core} style={{ fontSize: 16, color: "#94a3b8", lineHeight: 1.8 }} />
         </div>
 
         {/* Analogy */}
@@ -186,7 +187,7 @@ export default function BrowseMode({
               fontStyle: "italic",
             }}
           >
-            {topic.analogy}
+            <MarkdownText text={topic.analogy} style={{ color: "#c4b5fd", fontSize: 15, lineHeight: 1.7, fontStyle: "italic" }} />
           </div>
         </div>
 
@@ -214,18 +215,7 @@ export default function BrowseMode({
             Full Explanation{" "}
             <SpeakButton text={topic.details?.replace(/[*#`]/g, "")} />
           </div>
-          <pre
-            style={{
-              whiteSpace: "pre-wrap",
-              fontFamily: "inherit",
-              fontSize: 14,
-              color: "#94a3b8",
-              lineHeight: 1.8,
-              margin: 0,
-            }}
-          >
-            {topic.details.trim()}
-          </pre>
+          <MarkdownText text={topic.details.trim()} />
         </div>
 
         {/* Flashcard preview */}

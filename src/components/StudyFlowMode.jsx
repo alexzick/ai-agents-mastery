@@ -5,6 +5,7 @@ import { getRetention, getMastery, getMasteryColor } from "../utils/forgetting";
 import FeynmanSingle from "./FeynmanSingle";
 import FlashcardSingle, { DirectionToggle } from "./FlashcardSingle";
 import SpeakButton from "./SpeakButton";
+import MarkdownText from "./MarkdownText";
 
 const STEPS = [
   { key: "read", label: "Read", icon: "📖" },
@@ -299,16 +300,7 @@ function ReadStep({ topic, onContinue }) {
         >
           CORE CONCEPT <SpeakButton text={topic.core} />
         </div>
-        <div
-          style={{
-            fontSize: 16,
-            color: "#e2e8f0",
-            lineHeight: 1.7,
-            fontWeight: 600,
-          }}
-        >
-          {topic.core}
-        </div>
+        <MarkdownText text={topic.core} style={{ fontSize: 16, color: "#e2e8f0", lineHeight: 1.7, fontWeight: 600 }} />
       </div>
 
       {/* Analogy */}
@@ -335,16 +327,7 @@ function ReadStep({ topic, onContinue }) {
         >
           ANALOGY <SpeakButton text={topic.analogy} />
         </div>
-        <div
-          style={{
-            fontSize: 14,
-            color: "#94a3b8",
-            lineHeight: 1.7,
-            fontStyle: "italic",
-          }}
-        >
-          {topic.analogy}
-        </div>
+        <MarkdownText text={topic.analogy} style={{ fontSize: 14, color: "#94a3b8", lineHeight: 1.7, fontStyle: "italic" }} />
       </div>
 
       {/* Details */}
@@ -371,18 +354,7 @@ function ReadStep({ topic, onContinue }) {
         >
           DETAILS <SpeakButton text={topic.details?.replace(/[*#`]/g, "")} />
         </div>
-        <pre
-          style={{
-            fontSize: 14,
-            color: "#94a3b8",
-            lineHeight: 1.7,
-            whiteSpace: "pre-wrap",
-            fontFamily: "inherit",
-            margin: 0,
-          }}
-        >
-          {topic.details}
-        </pre>
+        <MarkdownText text={topic.details?.trim()} />
       </div>
 
       <div style={{ textAlign: "center" }}>
