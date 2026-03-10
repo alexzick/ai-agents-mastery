@@ -42,7 +42,7 @@ export default function FlashcardSingle({
   const handleSubmitAnswer = async () => {
     if (!userAnswer.trim()) return;
 
-    const apiKey = localStorage.getItem("anthropic_api_key");
+    const apiKey = localStorage.getItem("anthropic-api-key");
     if (!apiKey) {
       // No API key — flip the card and let user self-rate
       setFlipped(true);
