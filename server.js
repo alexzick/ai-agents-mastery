@@ -57,6 +57,54 @@ app.post("/api/feynman", async (req, res) => {
   }
 });
 
+app.post("/api/judge-flashcard", async (req, res) => {
+  const { question, correctAnswer, userAnswer, apiKey } = req.body;
+
+  if (!apiKey || !userAnswer || !correctAnswer) {
+    return res.status(400).json({ error: "Missing apiKey, userAnswer, or correctAnswer" });
+  }
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 500,
+        system: `You are a flashcard answer judge for an AI agents learning system. Compare the student's answer to the correct answer. Be generous with approximate matches — if they captured the key idea, that counts. Return JSON only:
+{
+  "match": <"exact"|"close"|"partial"|"wrong">,
+  "score": <0-5 where 0=blackout, 2=wrong but tried, 3=partial, 4=close, 5=exact>,
+  "feedback": "<one brief sentence explaining the judgment>"
+}`,
+        messages: [
+          {
+            role: "user",
+            content: `Question: "${question}"\n\nCorrect answer: "${correctAnswer}"\n\nStudent's answer: "${userAnswer}"`,
+          },
+        ],
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      return res.status(400).json({ error: data.error.message });
+    }
+
+    const text = data.content.map((b) => b.text || "").join("");
+    const cleaned = text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    res.json(parsed);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post("/api/tts", async (req, res) => {
   const { text, apiKey, voiceId = "21m00Tcm4TlvDq8ikWAM" } = req.body;
 

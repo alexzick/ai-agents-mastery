@@ -95,15 +95,19 @@ export default function App() {
       } else if (type === "flashcard") {
         updated.stability = updateStability(updated.stability, score);
         updated.lastReviewDate = new Date().toISOString();
-        // Track last 5 flashcard attempts
+        // Track last 10 flashcard attempts for richer history
         const history = [...(updated.flashcardHistory || [])];
         history.push({
           quality: score,
           correct: score >= 3,
           timestamp: new Date().toISOString(),
         });
-        // Keep only last 5
-        updated.flashcardHistory = history.slice(-5);
+        updated.flashcardHistory = history.slice(-10);
+        // Update accuracy stats
+        const last = updated.flashcardHistory;
+        updated.flashcardAccuracy =
+          last.filter((h) => h.correct).length / last.length;
+        updated.flashcardAttempts = (updated.flashcardAttempts || 0) + 1;
       }
 
       return { ...prev, [topicId]: updated };

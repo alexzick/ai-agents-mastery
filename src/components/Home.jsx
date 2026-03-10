@@ -131,7 +131,7 @@ export default function Home({
             fontFamily: "'Space Mono', monospace",
           }}
         >
-          MASTERY SYSTEM
+          ZICK AI
         </div>
         <h1
           style={{
@@ -142,7 +142,7 @@ export default function Home({
             letterSpacing: "-2px",
           }}
         >
-          <span style={{ color: "#e2e8f0" }}>AI Agents</span>
+          <span style={{ color: "#e2e8f0" }}>Zick AI</span>
           <br />
           <span
             style={{
@@ -151,7 +151,7 @@ export default function Home({
               WebkitTextFillColor: "transparent",
             }}
           >
-            Deep Mastery
+            Mastery System
           </span>
         </h1>
         <p
