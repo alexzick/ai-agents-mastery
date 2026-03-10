@@ -1,0 +1,63 @@
+// Simple Express proxy server for Feynman AI feedback
+// Run with: node server.js
+// The Vite dev server proxies /api/* to this server
+
+import express from "express";
+
+const app = express();
+app.use(express.json());
+
+app.post("/api/feynman", async (req, res) => {
+  const { prompt, userText, apiKey } = req.body;
+
+  if (!apiKey || !userText) {
+    return res.status(400).json({ error: "Missing apiKey or userText" });
+  }
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: `You are a Socratic tutor teaching AI agents. Evaluate the student's Feynman explanation with warmth and precision. Return JSON only:
+{
+  "score": <1-10>,
+  "understanding": "<one sentence on what they understood well>",
+  "gap": "<the single most important concept they missed or explained poorly>",
+  "hint": "<a concrete, actionable hint to improve their explanation without giving it away>",
+  "encouragement": "<a brief motivating sentence>"
+}`,
+        messages: [
+          {
+            role: "user",
+            content: `Prompt: "${prompt}"\n\nStudent's explanation:\n"${userText}"`,
+          },
+        ],
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      return res.status(400).json({ error: data.error.message });
+    }
+
+    const text = data.content.map((b) => b.text || "").join("");
+    const cleaned = text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    res.json(parsed);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+const PORT = 3001;
+app.listen(PORT, () => {
+  console.log(`Feynman API proxy running on http://localhost:${PORT}`);
+});
