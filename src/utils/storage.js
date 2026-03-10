@@ -49,6 +49,16 @@ export function saveFeynmanScores(scores) {
   setStore(store);
 }
 
+export function loadTopicMastery() {
+  return getStore().topicMastery || {};
+}
+
+export function saveTopicMastery(mastery) {
+  const store = getStore();
+  store.topicMastery = mastery;
+  setStore(store);
+}
+
 export function loadStats() {
   const store = getStore();
   const today = new Date().toDateString();

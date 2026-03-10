@@ -2,10 +2,16 @@ import { useState, useEffect } from "react";
 import TOPICS from "./data/topics";
 import { sm2, isDue } from "./utils/sm2";
 import {
+  updateStability,
+  feynmanToQuality,
+} from "./utils/forgetting";
+import {
   loadCardData,
   saveCardData,
   loadFeynmanTexts,
   saveFeynmanTexts,
+  loadTopicMastery,
+  saveTopicMastery,
   loadStats,
   saveStats,
 } from "./utils/storage";
@@ -14,18 +20,21 @@ import FlashcardMode from "./components/FlashcardMode";
 import FeynmanMode from "./components/FeynmanMode";
 import BrowseMode from "./components/BrowseMode";
 import CurriculumMode from "./components/CurriculumMode";
+import StudyFlowMode from "./components/StudyFlowMode";
+import ComprehensionMatrix from "./components/ComprehensionMatrix";
 
 export default function App() {
   const [mode, setMode] = useState("home");
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [flipped, setFlipped] = useState(false);
   const [filterCat, setFilterCat] = useState("All");
   const [selectedTopic, setSelectedTopic] = useState(null);
+  const [studyTopicId, setStudyTopicId] = useState(null);
 
   // Persistent state
   const [cardData, setCardData] = useState(loadCardData);
   const [feynmanText, setFeynmanText] = useState(loadFeynmanTexts);
   const [feynmanFeedback, setFeynmanFeedback] = useState({});
+  const [topicMastery, setTopicMastery] = useState(loadTopicMastery);
 
   const initialStats = loadStats();
   const [streak, setStreak] = useState(initialStats.streak);
@@ -33,13 +42,16 @@ export default function App() {
     initialStats.completedToday
   );
 
-  // Derived: study queue
-  const studyQueue = TOPICS.filter((t) => isDue(cardData[t.id]));
+  // Derived: study queue (uses forgetting curve via isDue)
+  const studyQueue = TOPICS.filter((t) =>
+    isDue(cardData[t.id], topicMastery[t.id])
+  );
   const dueCount = studyQueue.length;
 
   // Persist on change
   useEffect(() => saveCardData(cardData), [cardData]);
   useEffect(() => saveFeynmanTexts(feynmanText), [feynmanText]);
+  useEffect(() => saveTopicMastery(topicMastery), [topicMastery]);
   useEffect(
     () => saveStats({ streak, completedToday }),
     [streak, completedToday]
@@ -52,6 +64,50 @@ export default function App() {
     setCompletedToday((p) => p + 1);
     if (quality >= 3) setStreak((p) => p + 1);
     else setStreak(0);
+  };
+
+  /**
+   * Update topic mastery data after a study activity.
+   * @param {string} topicId
+   * @param {string} type - "feynman" or "flashcard"
+   * @param {number} score - Feynman: 1-10, Flashcard: 0-5 quality
+   */
+  const updateMastery = (topicId, type, score) => {
+    setTopicMastery((prev) => {
+      const existing = prev[topicId] || {
+        stability: 1,
+        lastReviewDate: null,
+        feynmanHighScore: 0,
+        flashcardHistory: [],
+        flowCompletions: 0,
+      };
+
+      const updated = { ...existing };
+
+      if (type === "feynman") {
+        // Map Feynman 1-10 to quality 0-5 for stability update
+        const quality = feynmanToQuality(score);
+        updated.stability = updateStability(updated.stability, quality);
+        updated.lastReviewDate = new Date().toISOString();
+        if (score > (updated.feynmanHighScore || 0)) {
+          updated.feynmanHighScore = score;
+        }
+      } else if (type === "flashcard") {
+        updated.stability = updateStability(updated.stability, score);
+        updated.lastReviewDate = new Date().toISOString();
+        // Track last 5 flashcard attempts
+        const history = [...(updated.flashcardHistory || [])];
+        history.push({
+          quality: score,
+          correct: score >= 3,
+          timestamp: new Date().toISOString(),
+        });
+        // Keep only last 5
+        updated.flashcardHistory = history.slice(-5);
+      }
+
+      return { ...prev, [topicId]: updated };
+    });
   };
 
   return (
@@ -71,6 +127,15 @@ export default function App() {
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        @keyframes pulse-ring {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+          70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        @keyframes pulse-border {
+          0%, 100% { border-color: #f59e0b44; }
+          50% { border-color: #f59e0b; }
+        }
       `}</style>
 
       {mode === "home" && (
@@ -79,9 +144,10 @@ export default function App() {
           streak={streak}
           completedToday={completedToday}
           cardData={cardData}
+          topicMastery={topicMastery}
           setMode={setMode}
           setCurrentIdx={setCurrentIdx}
-          setFlipped={setFlipped}
+          setStudyTopicId={setStudyTopicId}
         />
       )}
       {mode === "flashcards" && (
@@ -91,8 +157,6 @@ export default function App() {
           setFilterCat={setFilterCat}
           currentIdx={currentIdx}
           setCurrentIdx={setCurrentIdx}
-          flipped={flipped}
-          setFlipped={setFlipped}
           rateCard={rateCard}
           setMode={setMode}
         />
@@ -114,6 +178,8 @@ export default function App() {
           setFilterCat={setFilterCat}
           selectedTopic={selectedTopic}
           setSelectedTopic={setSelectedTopic}
+          topicMastery={topicMastery}
+          setStudyTopicId={setStudyTopicId}
         />
       )}
       {mode === "curriculum" && (
@@ -121,6 +187,26 @@ export default function App() {
           setMode={setMode}
           cardData={cardData}
           setSelectedTopic={setSelectedTopic}
+        />
+      )}
+      {mode === "study-flow" && studyTopicId && (
+        <StudyFlowMode
+          topicId={studyTopicId}
+          setMode={setMode}
+          feynmanText={feynmanText}
+          setFeynmanText={setFeynmanText}
+          feynmanFeedback={feynmanFeedback}
+          setFeynmanFeedback={setFeynmanFeedback}
+          rateCard={rateCard}
+          topicMastery={topicMastery}
+          updateMastery={updateMastery}
+        />
+      )}
+      {mode === "comprehension" && (
+        <ComprehensionMatrix
+          topicMastery={topicMastery}
+          setMode={setMode}
+          setStudyTopicId={setStudyTopicId}
         />
       )}
     </div>

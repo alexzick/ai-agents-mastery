@@ -1,5 +1,8 @@
 import TOPICS, { CATEGORIES } from "../data/topics";
 import { getCardStatus } from "../utils/sm2";
+import { btnStyle } from "../styles";
+import { getMastery, getMasteryColor, getRetention } from "../utils/forgetting";
+import SpeakButton from "./SpeakButton";
 
 export default function BrowseMode({
   setMode,
@@ -8,29 +11,63 @@ export default function BrowseMode({
   setFilterCat,
   selectedTopic,
   setSelectedTopic,
+  topicMastery,
+  setStudyTopicId,
 }) {
   const filtered =
     filterCat === "All"
       ? TOPICS
       : TOPICS.filter((t) => t.category === filterCat);
 
+  const startGuidedStudy = (topicId) => {
+    setStudyTopicId(topicId);
+    setMode("study-flow");
+  };
+
   if (selectedTopic) {
     const topic = selectedTopic;
+    const mastery = getMastery(topicMastery?.[topic.id] || {});
+    const retention = getRetention(topicMastery?.[topic.id] || {});
+
     return (
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "40px 20px" }}>
-        <button
-          onClick={() => setSelectedTopic(null)}
+        <div
           style={{
-            color: "#64748b",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: 14,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
             marginBottom: 32,
           }}
         >
-          ← All Topics
-        </button>
+          <button
+            onClick={() => setSelectedTopic(null)}
+            style={{
+              color: "#64748b",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 14,
+            }}
+          >
+            ← All Topics
+          </button>
+          {/* Mastery badge */}
+          {mastery > 0 && (
+            <div
+              style={{
+                fontSize: 12,
+                color: getMasteryColor(mastery),
+                fontFamily: "'Space Mono', monospace",
+                padding: "4px 12px",
+                border: `1px solid ${getMasteryColor(mastery)}33`,
+                borderRadius: 100,
+              }}
+            >
+              {Math.round(mastery * 100)}% mastery · {Math.round(retention * 100)}% retention
+            </div>
+          )}
+        </div>
+
         <div
           style={{
             marginBottom: 8,
@@ -90,6 +127,7 @@ export default function BrowseMode({
           </div>
         )}
 
+        {/* Core */}
         <div
           style={{
             fontSize: 16,
@@ -102,9 +140,21 @@ export default function BrowseMode({
             borderLeft: "4px solid #64ffda",
           }}
         >
-          <strong style={{ color: "#64ffda" }}>Core: </strong>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 8,
+            }}
+          >
+            <strong style={{ color: "#64ffda" }}>Core:</strong>
+            <SpeakButton text={topic.core} />
+          </div>
           {topic.core}
         </div>
+
+        {/* Analogy */}
         <div
           style={{
             padding: "20px 24px",
@@ -121,9 +171,12 @@ export default function BrowseMode({
               letterSpacing: 2,
               textTransform: "uppercase",
               marginBottom: 8,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
           >
-            Analogy
+            Analogy <SpeakButton text={topic.analogy} />
           </div>
           <div
             style={{
@@ -136,6 +189,8 @@ export default function BrowseMode({
             {topic.analogy}
           </div>
         </div>
+
+        {/* Details */}
         <div
           style={{
             background: "#0f172a",
@@ -151,9 +206,13 @@ export default function BrowseMode({
               letterSpacing: 2,
               textTransform: "uppercase",
               marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
           >
-            Full Explanation
+            Full Explanation{" "}
+            <SpeakButton text={topic.details?.replace(/[*#`]/g, "")} />
           </div>
           <pre
             style={{
@@ -176,6 +235,7 @@ export default function BrowseMode({
             borderRadius: 16,
             padding: "24px 28px",
             borderLeft: "4px solid #f59e0b",
+            marginBottom: 32,
           }}
         >
           <div
@@ -201,6 +261,29 @@ export default function BrowseMode({
           <div style={{ fontSize: 14, color: "#94a3b8" }}>
             A: {topic.flashA}
           </div>
+        </div>
+
+        {/* Start Guided Study button */}
+        <div
+          style={{
+            textAlign: "center",
+            padding: "20px 0",
+            borderTop: "1px solid #1e293b",
+          }}
+        >
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
+            Ready to test your understanding?
+          </div>
+          <button
+            onClick={() => startGuidedStudy(topic.id)}
+            style={{
+              ...btnStyle("#64ffda"),
+              fontSize: 16,
+              padding: "14px 32px",
+            }}
+          >
+            Start Guided Study →
+          </button>
         </div>
       </div>
     );
@@ -266,6 +349,7 @@ export default function BrowseMode({
       <div style={{ display: "grid", gap: 16 }}>
         {filtered.map((t) => {
           const status = getCardStatus(cardData[t.id]);
+          const mastery = getMastery(topicMastery?.[t.id] || {});
           const statusColors = {
             new: "#64748b",
             due: "#f59e0b",
@@ -331,6 +415,29 @@ export default function BrowseMode({
                   >
                     {t.core}
                   </div>
+                  {/* Mastery bar */}
+                  {mastery > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <div
+                        style={{
+                          height: 3,
+                          background: "#1e293b",
+                          borderRadius: 2,
+                          overflow: "hidden",
+                          maxWidth: 200,
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            width: `${mastery * 100}%`,
+                            background: getMasteryColor(mastery),
+                            borderRadius: 2,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div
                   style={{
@@ -354,15 +461,16 @@ export default function BrowseMode({
                   >
                     {status.toUpperCase()}
                   </div>
-                  {cardData[t.id] && (
+                  {mastery > 0 && (
                     <div
                       style={{
-                        fontSize: 10,
-                        color: "#334155",
+                        fontSize: 11,
+                        color: getMasteryColor(mastery),
                         fontFamily: "'Space Mono', monospace",
+                        fontWeight: 700,
                       }}
                     >
-                      x{cardData[t.id].repetitions} reps
+                      {Math.round(mastery * 100)}%
                     </div>
                   )}
                 </div>

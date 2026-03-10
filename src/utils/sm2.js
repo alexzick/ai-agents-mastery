@@ -31,13 +31,21 @@ export function sm2(card, quality) {
   };
 }
 
-export function isDue(cardData) {
-  if (!cardData?.nextReview) return true;
-  return new Date(cardData.nextReview) <= new Date();
+export function isDue(card, topicMasteryData) {
+  // If we have forgetting curve data, use retention threshold
+  if (topicMasteryData && topicMasteryData.lastReviewDate) {
+    const daysSince = (Date.now() - new Date(topicMasteryData.lastReviewDate).getTime()) / 86400000;
+    const S = topicMasteryData.stability || 1;
+    const retention = Math.exp(-daysSince / S);
+    return retention < 0.5;
+  }
+  // Fallback to original SM-2 logic
+  if (!card || !card.nextReview) return true;
+  return new Date(card.nextReview) <= new Date();
 }
 
-export function getCardStatus(cardData) {
+export function getCardStatus(cardData, topicMasteryData) {
   if (!cardData) return "new";
-  if (new Date(cardData.nextReview) > new Date()) return "learned";
-  return "due";
+  if (isDue(cardData, topicMasteryData)) return "due";
+  return "learned";
 }
