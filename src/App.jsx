@@ -22,6 +22,7 @@ import BrowseMode from "./components/BrowseMode";
 import CurriculumMode from "./components/CurriculumMode";
 import StudyFlowMode from "./components/StudyFlowMode";
 import ComprehensionMatrix from "./components/ComprehensionMatrix";
+import AIChatPanel from "./components/AIChatPanel";
 
 export default function App() {
   const [mode, setMode] = useState("home");
@@ -47,6 +48,17 @@ export default function App() {
     isDue(cardData[t.id], topicMastery[t.id])
   );
   const dueCount = studyQueue.length;
+
+  // Chat panel context — derive current topic based on active mode
+  const chatTopic = (() => {
+    if (mode === "browse" && selectedTopic) return selectedTopic; // already a topic object
+    if (mode === "study-flow" && studyTopicId)
+      return TOPICS.find((t) => t.id === studyTopicId) || null;
+    return null;
+  })();
+  const chatContextLabel =
+    mode === "browse" ? "Deep Study" : mode === "study-flow" ? "Study Flow" : mode === "curriculum" ? "Curriculum" : null;
+  const showChat = ["browse", "curriculum", "study-flow"].includes(mode);
 
   // Persist on change
   useEffect(() => saveCardData(cardData), [cardData]);
@@ -212,6 +224,11 @@ export default function App() {
           setMode={setMode}
           setStudyTopicId={setStudyTopicId}
         />
+      )}
+
+      {/* AI Study Buddy — floating chat panel */}
+      {showChat && (
+        <AIChatPanel topic={chatTopic} contextLabel={chatContextLabel} />
       )}
     </div>
   );
